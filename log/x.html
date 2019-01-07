@@ -1,0 +1,798 @@
+<html lang=""><body><style>/**
+ * This file is part of the Tracy (https://tracy.nette.org)
+ */
+
+.tracy-collapsed {
+	display: none;
+}
+
+.tracy-toggle.tracy-collapsed {
+	display: inline;
+}
+
+.tracy-toggle {
+	cursor: pointer;
+}
+
+.tracy-toggle:after {
+	content: "\A0\25BC";
+	opacity: .4;
+}
+
+.tracy-toggle.tracy-collapsed:after {
+	content: "\A0\25BA";
+}
+/**
+ * This file is part of the Tracy (https://tracy.nette.org)
+ */
+
+pre.tracy-dump {
+	text-align: left;
+	color: #444;
+	background: white;
+}
+
+pre.tracy-dump div {
+	padding-left: 3ex;
+}
+
+pre.tracy-dump div div {
+	border-left: 1px solid rgba(0, 0, 0, .1);
+	margin-left: .5ex;
+}
+
+pre.tracy-dump a {
+	color: #125EAE;
+	text-decoration: none;
+}
+
+pre.tracy-dump a:hover,
+pre.tracy-dump a:focus {
+	background-color: #125EAE;
+	color: white;
+}
+
+.tracy-dump-array,
+.tracy-dump-object {
+	color: #C22;
+}
+
+.tracy-dump-string {
+	color: #35D;
+}
+
+.tracy-dump-number {
+	color: #090;
+}
+
+.tracy-dump-null,
+.tracy-dump-bool {
+	color: #850;
+}
+
+.tracy-dump-visibility,
+.tracy-dump-hash {
+	font-size: 85%; color: #999;
+}
+
+.tracy-dump-indent {
+	display: none;
+}
+
+span[data-tracy-href] {
+	border-bottom: 1px dotted rgba(0, 0, 0, .2);
+}
+.debug-inline {     color: black;     text-align: left;     font-family: monospace, monospace;     font-size: 12px;     border: 1px solid lightgray;     border-bottom: rgb(255, 100, 100) 3px solid;     background-color: lightyellow;     width: 100%;     min-width: 500px;     z-index: 9999;     position: relative;  }  .debug-todo {     border-bottom: rgb(255, 100, 100) 1px solid;     padding-top: 5px; }  .debug-didYouKnow {     padding: 5px;     color: lightslategrey; }  .debug-inline:hover {     position: relative;     z-index: 9999; }  .debug-inline-name {     font-weight: bold;     font-size: 13px;     color: black;     display: block; }  .debug-hide {     float: right;     margin: 0 5px;     text-decoration: none;     color: red;     font-size: 13px; }  .debug-backtrace, .debug-backtrace-first {     color: black;     margin-left: 5px; }  .debug-backtrace a, .debug-backtrace-first a {     color: black; }  .debug-backtrace a:hover, .debug-backtrace-first a:hover {     color: darkblue; }  .debug-backtrace-first {     border-bottom: 1px dotted #ba0000;     cursor: help; }  .debug-backtrace-as-variable {     background-color: white; }  .debug-backtraces {     display: none;     padding-left: 10px;     background-color: lightblue;     cursor: help; }  .debug-variable {     border: lightgrey 1px dashed;     max-height: 100px;     overflow: auto;     margin: 0 0 5px 5px;     cursor: help; }  .debug-variable-name {     font-size: 12px;     margin: 5px 0 0 5px;     display: block; }  .debug-sql {     position: relative;     background: white;     padding: 3px; }  .debug-sql-link {     position: absolute;     top: 5px;     right: 5px; }  /* dump */ pre.tracy-dump {     text-align: left;     color: #444;     font-size: 12px !important;     margin: 0;     padding: 3px; } </style><script>/**
+ * This file is part of the Tracy (https://tracy.nette.org)
+ */
+
+(function() {
+
+	// enables <a class="tracy-toggle" href="#"> or <span data-tracy-ref="#"> toggling
+	class Toggle
+	{
+		static init() {
+			document.documentElement.addEventListener('click', function(e) {
+				var el = e.target.closest('.tracy-toggle');
+				if (el && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
+					Toggle.toggle(el);
+				}
+			});
+			Toggle.init = function() {};
+		}
+
+
+		// changes element visibility
+		static toggle(el, show) {
+			var collapsed = el.classList.contains('tracy-collapsed'),
+				ref = el.getAttribute('data-tracy-ref') || el.getAttribute('href', 2),
+				dest = el;
+
+			if (typeof show === 'undefined') {
+				show = collapsed;
+			} else if (!show === collapsed) {
+				return;
+			}
+
+			if (!ref || ref === '#') {
+				ref = '+';
+			} else if (ref.substr(0, 1) === '#') {
+				dest = document;
+			}
+			ref = ref.match(/(\^\s*([^+\s]*)\s*)?(\+\s*(\S*)\s*)?(.*)/);
+			dest = ref[1] ? dest.parentNode : dest;
+			dest = ref[2] ? dest.closest(ref[2]) : dest;
+			dest = ref[3] ? Toggle.nextElement(dest.nextElementSibling, ref[4]) : dest;
+			dest = ref[5] ? dest.querySelector(ref[5]) : dest;
+
+			el.classList.toggle('tracy-collapsed', !show);
+			dest.classList.toggle('tracy-collapsed', !show);
+
+			if (typeof window.Event === 'function') {
+				var toggleEvent = new Event('tracy-toggle', {bubbles: true});
+			} else {
+				toggleEvent = document.createEvent('Event');
+				toggleEvent.initEvent('tracy-toggle', true, false);
+			}
+			el.dispatchEvent(toggleEvent);
+		}
+
+
+		// save & restore toggles
+		static persist(baseEl, restore) {
+			var saved = [];
+			baseEl.addEventListener('tracy-toggle', function(e) {
+				if (saved.indexOf(e.target) < 0) {
+					saved.push(e.target);
+				}
+			});
+
+			var toggles = JSON.parse(sessionStorage.getItem('tracy-toggles-' + baseEl.id));
+			if (toggles && restore !== false) {
+				toggles.forEach(function(item) {
+					var el = baseEl;
+					for (var i in item.path) {
+						if (!(el = el.children[item.path[i]])) {
+							return;
+						}
+					}
+					if (el.textContent === item.text) {
+						Toggle.toggle(el, item.show);
+					}
+				});
+			}
+
+			window.addEventListener('unload', function() {
+				toggles = [].map.call(saved, function(el) {
+					var item = {path: [], text: el.textContent, show: !el.classList.contains('tracy-collapsed')};
+					do {
+						item.path.unshift([].indexOf.call(el.parentNode.children, el));
+						el = el.parentNode;
+					} while (el && el !== baseEl);
+					return item;
+				});
+				sessionStorage.setItem('tracy-toggles-' + baseEl.id, JSON.stringify(toggles));
+			});
+		}
+
+
+		// finds next matching element
+		static nextElement(el, selector) {
+			while (el && selector && !el.matches(selector)) {
+				el = el.nextElementSibling;
+			}
+			return el;
+		}
+	}
+
+
+	Tracy = window.Tracy || {};
+	Tracy.Toggle = Tracy.Toggle || Toggle;
+})();
+/**
+ * This file is part of the Tracy (https://tracy.nette.org)
+ */
+
+(function() {
+	const
+		COLLAPSE_COUNT = 7,
+		COLLAPSE_COUNT_TOP = 14;
+
+	class Dumper
+	{
+		static init(repository, context) {
+			if (repository) {
+				[].forEach.call((context || document).querySelectorAll('.tracy-dump[data-tracy-dump]'), function(el) {
+					try {
+						el.appendChild(build(JSON.parse(el.getAttribute('data-tracy-dump')), repository, el.classList.contains('tracy-collapsed')));
+						el.classList.remove('tracy-collapsed');
+						el.removeAttribute('data-tracy-dump');
+					} catch (e) {
+						if (!(e instanceof UnknownEntityException)) {
+							throw e;
+						}
+					}
+				});
+			}
+
+			if (Dumper.inited) {
+				return;
+			}
+			Dumper.inited = true;
+
+			// enables <span data-tracy-href=""> & ctrl key
+			document.documentElement.addEventListener('click', function(e) {
+				var el;
+				if (e.ctrlKey && (el = e.target.closest('[data-tracy-href]'))) {
+					location.href = el.getAttribute('data-tracy-href');
+					return false;
+				}
+			});
+
+			Tracy.Toggle.init();
+		}
+	}
+
+
+	function build(data, repository, collapsed, parentIds) {
+		var type = data === null ? 'null' : typeof data,
+			collapseCount = typeof collapsed === 'undefined' ? COLLAPSE_COUNT_TOP : COLLAPSE_COUNT;
+
+		if (type === 'null' || type === 'string' || type === 'number' || type === 'boolean') {
+			data = type === 'string' ? '"' + data + '"' : (data + '');
+			return createEl(null, null, [
+				createEl(
+					'span',
+					{'class': 'tracy-dump-' + type.replace('ean', '')},
+					[data + '\n']
+				)
+			]);
+
+		} else if (Array.isArray(data)) {
+			return buildStruct(
+				[
+					createEl('span', {'class': 'tracy-dump-array'}, ['array']),
+					' (' + (data[0] && data.length || '') + ')'
+				],
+				' [ ... ]',
+				data[0] === null ? null : data,
+				collapsed === true || data.length >= collapseCount,
+				repository,
+				parentIds
+			);
+
+		} else if (type === 'object' && data.number) {
+			return createEl(null, null, [
+				createEl('span', {'class': 'tracy-dump-number'}, [data.number + '\n'])
+			]);
+
+		} else if (type === 'object' && data.type) {
+			return createEl(null, null, [
+				createEl('span', null, [data.type + '\n'])
+			]);
+
+		} else if (type === 'object') {
+			var id = data.object || data.resource,
+				object = repository[id];
+
+			if (!object) {
+				throw new UnknownEntityException;
+			}
+			parentIds = parentIds || [];
+			var recursive = parentIds.indexOf(id) > -1;
+			parentIds.push(id);
+
+			return buildStruct(
+				[
+					createEl('span', {
+						'class': data.object ? 'tracy-dump-object' : 'tracy-dump-resource',
+						title: object.editor ? 'Declared in file ' + object.editor.file + ' on line ' + object.editor.line : null,
+						'data-tracy-href': object.editor ? object.editor.url : null
+					}, [object.name]),
+					' ',
+					createEl('span', {'class': 'tracy-dump-hash'}, ['#' + id])
+				],
+				' { ... }',
+				object.items,
+				collapsed === true || recursive || (object.items && object.items.length >= collapseCount),
+				repository,
+				parentIds
+			);
+		}
+	}
+
+
+	function buildStruct(span, ellipsis, items, collapsed, repository, parentIds) {
+		var res, toggle, div, handler;
+
+		if (!items || !items.length) {
+			span.push(!items || items.length ? ellipsis + '\n' : '\n');
+			return createEl(null, null, span);
+		}
+
+		res = createEl(null, null, [
+			toggle = createEl('span', {'class': collapsed ? 'tracy-toggle tracy-collapsed' : 'tracy-toggle'}, span),
+			'\n',
+			div = createEl('div', {'class': collapsed ? 'tracy-collapsed' : ''})
+		]);
+
+		if (collapsed) {
+			toggle.addEventListener('tracy-toggle', handler = function() {
+				toggle.removeEventListener('tracy-toggle', handler);
+				createItems(div, items, repository, parentIds);
+			});
+		} else {
+			createItems(div, items, repository, parentIds);
+		}
+		return res;
+	}
+
+
+	function createEl(el, attrs, content) {
+		if (!(el instanceof Node)) {
+			el = el ? document.createElement(el) : document.createDocumentFragment();
+		}
+		for (var id in attrs || {}) {
+			if (attrs[id] !== null) {
+				el.setAttribute(id, attrs[id]);
+			}
+		}
+		content = content || [];
+		for (id = 0; id < content.length; id++) {
+			var child = content[id];
+			if (child !== null) {
+				el.appendChild(child instanceof Node ? child : document.createTextNode(child));
+			}
+		}
+		return el;
+	}
+
+
+	function createItems(el, items, repository, parentIds) {
+		for (var i = 0; i < items.length; i++) {
+			var vis = items[i][2];
+			createEl(el, null, [
+				createEl('span', {'class': 'tracy-dump-key'}, [items[i][0]]),
+				vis ? ' ' : null,
+				vis ? createEl('span', {'class': 'tracy-dump-visibility'}, [vis === 1 ? 'protected' : 'private']) : null,
+				' => ',
+				build(items[i][1], repository, null, parentIds)
+			]);
+		}
+	}
+
+
+	function UnknownEntityException() {}
+
+
+	Tracy = window.Tracy || {};
+	Tracy.Dumper = Dumper;
+})();
+function debugToggle(element, event) {     if (event.detail === 3 || (event.ctrlKey && event.detail === 2)) {         if (element.nextElementSibling.style.display === 'none') {             element.nextElementSibling.style.display = 'block';         } else {             element.nextElementSibling.style.display = 'none';         }         unselectText();     } }  function debugExpand(element, event) {     if (event.detail === 3 || (event.ctrlKey && event.detail === 2)) {          if (element.style.maxHeight === '1000px') {             element.style.maxHeight = '100px';         } else {             element.style.maxHeight = '1000px';         }         unselectText();     } }  function unselectText() {     window.getSelection().removeAllRanges(); }  Tracy.Dumper.init(); </script>
+<div class='debug-inline hash-f64878319e8ea91d943562ebaaa47d79' style='background-color:rgb(255, 255, 187); border-left: 6px double #8d990f;'>
+<div onclick="debugToggle(this, event);" class="debug-backtrace debug-backtrace-first" title="Hold CTRL and double-click or triple-click to show more info" >
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=236&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (236)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->processDiff() <span class='debug-hide' title='2019-01-07 01:40:46:824100'>01:40:46:824100</span>
+</div>
+<div class="debug-backtraces" style="display:none;" >
+<div class='debug-backtrace'>
+12. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymplify%5Ceasy-coding-standard%5Cbin%5Cecs&line=23&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symplify\easy-coding-standard\bin\</small><strong>ecs (23)</strong></a> Symfony\Component\Console\Application->run() 
+</div>
+<div class='debug-backtrace'>
+11. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymfony%5Cconsole%5CApplication.php&line=145&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symfony\console\</small><strong>Application.php (145)</strong></a> Symplify\EasyCodingStandard\Console\Application->doRun() 
+</div>
+<div class='debug-backtrace'>
+10. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymplify%5Ceasy-coding-standard%5Csrc%5CConsole%5CApplication.php&line=50&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symplify\easy-coding-standard\src\Console\</small><strong>Application.php (50)</strong></a> Symfony\Component\Console\Application->doRun() 
+</div>
+<div class='debug-backtrace'>
+9. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymfony%5Cconsole%5CApplication.php&line=262&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symfony\console\</small><strong>Application.php (262)</strong></a> Symplify\EasyCodingStandard\Console\Application->doRunCommand() 
+</div>
+<div class='debug-backtrace'>
+8. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymplify%5Cpackage-builder%5Csrc%5CConsole%5CHelpfulApplicationTrait.php&line=20&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symplify\package-builder\src\Console\</small><strong>HelpfulApplicationTrait.php (20)</strong></a> Symfony\Component\Console\Application->doRunCommand() 
+</div>
+<div class='debug-backtrace'>
+7. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymfony%5Cconsole%5CApplication.php&line=919&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symfony\console\</small><strong>Application.php (919)</strong></a> Symfony\Component\Console\Command\Command->run() 
+</div>
+<div class='debug-backtrace'>
+6. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymfony%5Cconsole%5CCommand%5CCommand.php&line=255&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symfony\console\Command\</small><strong>Command.php (255)</strong></a> Symplify\EasyCodingStandard\Console\Command\CheckCommand->execute() 
+</div>
+<div class='debug-backtrace'>
+5. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymplify%5Ceasy-coding-standard%5Csrc%5CConsole%5CCommand%5CCheckCommand.php&line=90&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symplify\easy-coding-standard\src\Console\Command\</small><strong>CheckCommand.php (90)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->report() 
+</div>
+<div class='debug-backtrace'>
+4. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=113&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (113)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->generateFile() 
+</div>
+<div class='debug-backtrace'>
+3. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=141&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (141)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->reportFileDiffs() 
+</div>
+<div class='debug-backtrace'>
+2. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=202&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (202)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->processDiff() 
+</div>
+<div class='debug-backtrace'>
+1. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=236&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (236)</strong></a> noximo\Dbgr::dump() 
+</div>
+<div><strong class='debug-variable-name'>SERVER:</strong>
+<div onclick='debugExpand(this, event);' class='debug-variable' title='Hold CTRL and double-click or triple-click to enlarge/shrink this dump'>
+<pre class="tracy-dump"><span class="tracy-toggle"><span class="tracy-dump-array">array</span> (56)</span>
+<div><span class="tracy-dump-indent">   </span><span class="tracy-dump-key">BIN_TARGET</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ECS_ORIGINAL_INIS</span> => <span class="tracy-dump-string">"C:\wamp64\bin\php\php7.2.4\php.ini"</span> (34)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROMPT</span> => <span class="tracy-dump-string">"$P$G"</span> (4)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">USERDOMAIN_ROAMINGPROFILE</span> => <span class="tracy-dump-string">"DESKTOP-9D42HS0"</span> (15)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">TEMP</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Local\Temp"</span> (30)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ComSpec</span> => <span class="tracy-dump-string">"C:\Windows\system32\cmd.exe"</span> (27)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">COMPUTERNAME</span> => <span class="tracy-dump-string">"DESKTOP-9D42HS0"</span> (15)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">LOCALAPPDATA</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Local"</span> (25)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">"CommonProgramFiles(x86)"</span> => <span class="tracy-dump-string">"C:\Program Files (x86)\Common Files"</span> (35)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">OneDrive</span> => <span class="tracy-dump-string">"C:\Users\TP\OneDrive"</span> (20)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ALLUSERSPROFILE</span> => <span class="tracy-dump-string">"C:\ProgramData"</span> (14)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ProgramFiles</span> => <span class="tracy-dump-string">"C:\Program Files"</span> (16)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">LOGONSERVER</span> => <span class="tracy-dump-string">"\\DESKTOP-9D42HS0"</span> (17)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROJECT_DIR</span> => <span class="tracy-dump-string">"C:/wamp64/www/ecs-fileoutput"</span> (28)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">USERDOMAIN</span> => <span class="tracy-dump-string">"DESKTOP-9D42HS0"</span> (15)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">USERNAME</span> => <span class="tracy-dump-string">"TP"</span> (2)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">FPS_BROWSER_USER_PROFILE_STRING</span> => <span class="tracy-dump-string">"Default"</span> (7)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">CommonProgramFiles</span> => <span class="tracy-dump-string">"C:\Program Files\Common Files"</span> (29)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SystemRoot</span> => <span class="tracy-dump-string">"C:\Windows"</span> (10)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">OS</span> => <span class="tracy-dump-string">"Windows_NT"</span> (10)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">USERPROFILE</span> => <span class="tracy-dump-string">"C:\Users\TP"</span> (11)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">HOMEPATH</span> => <span class="tracy-dump-string">"\Users\TP"</span> (9)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SystemDrive</span> => <span class="tracy-dump-string">"C:"</span> (2)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">"ProgramFiles(x86)"</span> => <span class="tracy-dump-string">"C:\Program Files (x86)"</span> (22)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROCESSOR_IDENTIFIER</span> => <span class="tracy-dump-string">"Intel64 Family 6 Model 60 Stepping 3, GenuineIntel"</span> (50)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">__INTELLIJ_COMMAND_HISTFILE__</span> => <span class="tracy-dump-string">"C:\Users\TP\.PhpStorm2018.3\config\terminal\history\history-3"</span> (61)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROCESSOR_LEVEL</span> => <span class="tracy-dump-string">"6"</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">DriverData</span> => <span class="tracy-dump-string">"C:\Windows\System32\Drivers\DriverData"</span> (38)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PUBLIC</span> => <span class="tracy-dump-string">"C:\Users\Public"</span> (15)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">NUMBER_OF_PROCESSORS</span> => <span class="tracy-dump-string">"4"</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">APPDATA</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Roaming"</span> (27)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">CommonProgramW6432</span> => <span class="tracy-dump-string">"C:\Program Files\Common Files"</span> (29)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">windir</span> => <span class="tracy-dump-string">"C:\Windows"</span> (10)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ProgramW6432</span> => <span class="tracy-dump-string">"C:\Program Files"</span> (16)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">TERMINAL_EMULATOR</span> => <span class="tracy-dump-string">"JetBrains-JediTerm"</span> (18)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">TMP</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Local\Temp"</span> (30)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">OneDriveConsumer</span> => <span class="tracy-dump-string">"C:\Users\TP\OneDrive"</span> (20)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROCESSOR_ARCHITECTURE</span> => <span class="tracy-dump-string">"AMD64"</span> (5)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PATHEXT</span> => <span class="tracy-dump-string">".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL"</span> (58)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">HOMEDRIVE</span> => <span class="tracy-dump-string">"C:"</span> (2)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">FPS_BROWSER_APP_PROFILE_STRING</span> => <span class="tracy-dump-string">"Internet Explorer"</span> (17)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ProgramData</span> => <span class="tracy-dump-string">"C:\ProgramData"</span> (14)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROCESSOR_REVISION</span> => <span class="tracy-dump-string">"3c03"</span> (4)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PSModulePath</span> => <span class="tracy-dump-string">"C:\Users\TP\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules"</span> (141)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">Path</span> => <span class="tracy-dump-string">"C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Calibre2\;C:\Program Files (x86)\NoteBook FanControl\;C:\wamp64\bin\php\php7.2.4;C:\ProgramData\ComposerSetup\bin;C:\Program Files\PuTTY\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files (x86)\gnupg\bin;C:\wamp64\Redis\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files\Git\cmd;C:\Program Files (x86)\GitExtensions\;C:\Users\TP\AppData\Local\Microsoft\WindowsApps;C:\Users\TP\AppData\Roaming\Composer\vendor\bin"</span> (655)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PHP_SELF</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SCRIPT_NAME</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SCRIPT_FILENAME</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PATH_TRANSLATED</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">DOCUMENT_ROOT</span> => <span class="tracy-dump-string">""</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">REQUEST_TIME_FLOAT</span> => <span class="tracy-dump-number">1546825246.252428</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">REQUEST_TIME</span> => <span class="tracy-dump-number">1546825246</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">argv</span> => <span class="tracy-toggle"><span class="tracy-dump-array">array</span> (6)</span>
+<div><span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">0</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">1</span> => <span class="tracy-dump-string">"check"</span> (5)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">2</span> => <span class="tracy-dump-string">"tests"</span> (5)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">3</span> => <span class="tracy-dump-string">"--output-format"</span> (15)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">4</span> => <span class="tracy-dump-string">"file"</span> (4)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">5</span> => <span class="tracy-dump-string">"--ansi"</span> (6)
+</div><span class="tracy-dump-indent">   </span><span class="tracy-dump-key">argc</span> => <span class="tracy-dump-number">6</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">XDEBUG_HANDLER_SETTINGS</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Local\Temp\9C69.tmp|0|*|*|C:\wamp64\bin\php\php7.2.4\php.ini|2.6.0"</span> (86)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SHELL_VERBOSITY</span> => <span class="tracy-dump-number">0</span>
+</div></pre>
+</div></div>
+<div><strong class='debug-variable-name'>PHP Version:</strong>
+<div onclick='debugExpand(this, event);' class='debug-variable' title='Hold CTRL and double-click or triple-click to enlarge/shrink this dump'>
+<pre class="tracy-dump"><span class="tracy-dump-string">"7.2.4"</span> (5)
+</pre>
+</div></div>
+<div><strong class='debug-variable-name'>Current configuration:</strong>
+<div onclick='debugExpand(this, event);' class='debug-variable' title='Hold CTRL and double-click or triple-click to enlarge/shrink this dump'>
+<pre class="tracy-dump"><span class="tracy-toggle"><span class="tracy-dump-array">array</span> (7)</span>
+<div><span class="tracy-dump-indent">   </span><span class="tracy-dump-key">logDir</span> => <span class="tracy-dump-string">"log/"</span> (4)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">adminerDatabaseName</span> => <span class="tracy-dump-null">null</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">adminerUsername</span> => <span class="tracy-dump-null">null</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">adminerUrlLink</span> => <span class="tracy-dump-string">"http://localhost/adminer.php"</span> (28)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">allowedIPAddresses</span> => <span class="tracy-dump-array">array</span> ()
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">editorUri</span> => <span class="tracy-dump-string">"editor://%action/?file=%file&amp;line=%line&amp;search=%search&amp;replace=%replace"</span> (71)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">didYouKnow</span> => <span class="tracy-toggle tracy-collapsed"><span class="tracy-dump-array">array</span> (21)</span>
+<div class="tracy-collapsed"><span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">0</span> => <span class="tracy-dump-string">"You can use &lt;b&gt;dumpOnTrue&lt;/b&gt; method to print variables only when first parameter is true."</span> (90)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">1</span> => <span class="tracy-dump-string">"Dbgr respects &lt;a href=&#039;https://secure.php.net/manual/en/language.oop5.magic.php#object.debuginfo&#039;&gt;__debugInfo&lt;/a&gt; magic method. You can use it to adjust what data object prints out."</span> (181)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">2</span> => <span class="tracy-dump-string">"You can use method &lt;b&gt;condition&lt;/b&gt; to set wheter condition is true or false and then use dumpConditional only when condition is true."</span> (134)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">3</span> => <span class="tracy-dump-string">"You can set your own config file by creating dbgr.json in root folder or using &lt;b&gt;loadConfig&lt;/b&gt; method dynamicaly"</span> (114)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">4</span> => <span class="tracy-dump-string">"Dbgr can open files on line where Dbgr was called, backtrace locations and even class declarations with single click. To set it up, follow guide at https://tracy.nette.org/en/open-files-in-ide"</span> (192)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">5</span> => <span class="tracy-dump-string">"Colored lines at the left side are based on backtraces. Same dump, reached through different stack traces will have different colors to quickly tell them apart"</span> (159)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">6</span> => <span class="tracy-dump-string">"You name your dumped data using &lt;b&gt;setName&lt;/b&gt; method"</span> (53)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">7</span> => <span class="tracy-dump-string">"Dbgr will output time passed since the last time Dbgr was called."</span> (65)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">8</span> => <span class="tracy-dump-string">"You can save dump into file by calling &lt;b&gt;setFile&lt;/b&gt; before calling method dump. Multiple calls with the same filename will be appended into single file."</span> (154)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">9</span> => <span class="tracy-dump-string">"Dbgr will output data only on localhost. You can whitelist ip addresses that can view dumped data (set allowedIPAddresses in your config) or call &lt;b&gt;forceDevelopmentMode&lt;/b&gt; method"</span> (180)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">10</span> => <span class="tracy-dump-string">"&lt;b&gt;Dbgr::echo&lt;/b&gt; provides improved echo function with immediate output, timestamping"</span> (85)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">11</span> => <span class="tracy-dump-string">"If you&#039;re working with large arrays, you can use &lt;b&gt;setDepth&lt;/b&gt; method to increase depth of printed subarrays"</span> (110)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">12</span> => <span class="tracy-dump-string">"If you&#039;re dumping sql queries, Dbgr will highlight their syntax and can provide link into adminer - no need to copy them. Use adminerDatabaseName and adminerUrlLink configurations to set it up."</span> (193)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">13</span> => <span class="tracy-dump-string">"Dbgr respects environmet in which it was run, wheter it is HTML page, AJAX request or CLI application. You can force output to be in HTML format using &lt;b&gt;forceHTML&lt;/b&gt;"</span> (167)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">14</span> => <span class="tracy-dump-string">"If you&#039;re annoyed by hidden and forgotten exits and dies, you can use &lt;b&gt;dieNow&lt;/b&gt; method to end script with proper and verbose message"</span> (136)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">15</span> => <span class="tracy-dump-string">"You can use &lt;b&gt;dieAfter&lt;/b&gt; method if you want to end script execution prematurely but not immediatly. No need to iterate over 20 000 items if 20 is enough."</span> (156)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">16</span> => <span class="tracy-dump-string">"If you have too many dumps in your output, you can differentiate them by colors using &lt;b&gt;setColor&lt;/b&gt; method"</span> (108)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">17</span> => <span class="tracy-dump-string">"If you&#039;re working with imports or other large sets of data, you can use methods &lt;b&gt;setCounter&lt;/b&gt; and &lt;b&gt;incrementCounter&lt;/b&gt; to quickly view progress. It will print only every Xth iteration."</span> (191)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">18</span> => <span class="tracy-dump-string">"Hold ctrl and click on class name - it will bring you to its declaration."</span> (73)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">19</span> => <span class="tracy-dump-string">"Hold ctrl and double click on top line with filename - it will open full call stack and additional info."</span> (104)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">20</span> => <span class="tracy-dump-string">"Hold ctrl and double click on outputed data - it will enlarge output."</span> (69)
+</div></div></pre>
+</div></div>
+</div>
+<div><strong class='debug-variable-name'>$diff:</strong>
+<div onclick='debugExpand(this, event);' class='debug-variable' title='Hold CTRL and double-click or triple-click to enlarge/shrink this dump'>
+<div class='debug-sql'>
+<span class='dump'><comment>    ---------- begin diff ----------</comment>
+<span class='deletion'>--- Original</span>
+<span class='addition'>+++ New</span>
+<span class='gitinfo'>@@ -1,3 +1,3 @@</span>
+ <?php
+ <em style="color:gray">/**
+  * Created by PhpStorm.
+<span class='gitinfo'>@@ -13,8 +13,8 @@</span>
+     const SOMETHING = 1 + 1;
+<span class='deletion'>-    public function __construct()</span>
+<span class='deletion'>-    {</span>
+<span class='addition'>+    public function __construct()</span>
+<span class='addition'>+{</span>
+     }
+     /**
+<span class='gitinfo'>@@ -22,8 +22,8 @@</span>
+      *
+      * @return int
+      */</em>
+<span class='deletion'>-    function doSOmething(<strong style="color:green">INT</strong> $problem): string</span>
+<span class='deletion'>-    {</span>
+<span class='addition'>+    function doSOmething(<strong style="color:green">INT</strong> $problem): string</span>
+<span class='addition'>+{</span>
+         return $problem;
+     }
+ }
+<comment>    ----------- end diff -----------</comment></span>
+
+</div>
+</div></div>
+<div class='debug-didYouKnow'><b>Did you know?</b> Dbgr can open files on line where Dbgr was called, backtrace locations and even class declarations with single click. To set it up, follow guide at https://tracy.nette.org/en/open-files-in-ide</b></div>
+</div>
+<div class='debug-inline hash-f8cf3312cd11161ceb9aa62fb9534665' style='background-color:lightyellow; border-left: 6px double #8d990f;'>
+<div onclick="debugToggle(this, event);" class="debug-backtrace debug-backtrace-first" title="Hold CTRL and double-click or triple-click to show more info" >
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=236&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (236)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->processDiff() <span class='debug-hide' title='2019-01-07 01:40:46:853500'>0.029 (0.029)</span>
+</div>
+<div class="debug-backtraces" style="display:none;" >
+<div class='debug-backtrace'>
+12. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymplify%5Ceasy-coding-standard%5Cbin%5Cecs&line=23&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symplify\easy-coding-standard\bin\</small><strong>ecs (23)</strong></a> Symfony\Component\Console\Application->run() 
+</div>
+<div class='debug-backtrace'>
+11. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymfony%5Cconsole%5CApplication.php&line=145&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symfony\console\</small><strong>Application.php (145)</strong></a> Symplify\EasyCodingStandard\Console\Application->doRun() 
+</div>
+<div class='debug-backtrace'>
+10. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymplify%5Ceasy-coding-standard%5Csrc%5CConsole%5CApplication.php&line=50&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symplify\easy-coding-standard\src\Console\</small><strong>Application.php (50)</strong></a> Symfony\Component\Console\Application->doRun() 
+</div>
+<div class='debug-backtrace'>
+9. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymfony%5Cconsole%5CApplication.php&line=262&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symfony\console\</small><strong>Application.php (262)</strong></a> Symplify\EasyCodingStandard\Console\Application->doRunCommand() 
+</div>
+<div class='debug-backtrace'>
+8. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymplify%5Cpackage-builder%5Csrc%5CConsole%5CHelpfulApplicationTrait.php&line=20&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symplify\package-builder\src\Console\</small><strong>HelpfulApplicationTrait.php (20)</strong></a> Symfony\Component\Console\Application->doRunCommand() 
+</div>
+<div class='debug-backtrace'>
+7. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymfony%5Cconsole%5CApplication.php&line=919&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symfony\console\</small><strong>Application.php (919)</strong></a> Symfony\Component\Console\Command\Command->run() 
+</div>
+<div class='debug-backtrace'>
+6. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymfony%5Cconsole%5CCommand%5CCommand.php&line=255&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symfony\console\Command\</small><strong>Command.php (255)</strong></a> Symplify\EasyCodingStandard\Console\Command\CheckCommand->execute() 
+</div>
+<div class='debug-backtrace'>
+5. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Cvendor%5Csymplify%5Ceasy-coding-standard%5Csrc%5CConsole%5CCommand%5CCheckCommand.php&line=90&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\vendor\symplify\easy-coding-standard\src\Console\Command\</small><strong>CheckCommand.php (90)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->report() 
+</div>
+<div class='debug-backtrace'>
+4. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=113&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (113)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->generateFile() 
+</div>
+<div class='debug-backtrace'>
+3. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=141&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (141)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->reportFileDiffs() 
+</div>
+<div class='debug-backtrace'>
+2. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=202&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (202)</strong></a> noximo\EasyCodingStandardFileoutput\FileOutputFormatter->processDiff() 
+</div>
+<div class='debug-backtrace'>
+1. 
+<a title='Otevřít v editoru' href='editor://open/?file=C%3A%5Cwamp64%5Cwww%5Cecs-fileoutput%5Csrc%5CFileOutputFormatter.php&line=236&search=&replace='><small>C:\wamp64\www\ecs-fileoutput\src\</small><strong>FileOutputFormatter.php (236)</strong></a> noximo\Dbgr::dump() 
+</div>
+<div><strong class='debug-variable-name'>SERVER:</strong>
+<div onclick='debugExpand(this, event);' class='debug-variable' title='Hold CTRL and double-click or triple-click to enlarge/shrink this dump'>
+<pre class="tracy-dump"><span class="tracy-toggle"><span class="tracy-dump-array">array</span> (56)</span>
+<div><span class="tracy-dump-indent">   </span><span class="tracy-dump-key">BIN_TARGET</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ECS_ORIGINAL_INIS</span> => <span class="tracy-dump-string">"C:\wamp64\bin\php\php7.2.4\php.ini"</span> (34)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROMPT</span> => <span class="tracy-dump-string">"$P$G"</span> (4)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">USERDOMAIN_ROAMINGPROFILE</span> => <span class="tracy-dump-string">"DESKTOP-9D42HS0"</span> (15)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">TEMP</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Local\Temp"</span> (30)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ComSpec</span> => <span class="tracy-dump-string">"C:\Windows\system32\cmd.exe"</span> (27)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">COMPUTERNAME</span> => <span class="tracy-dump-string">"DESKTOP-9D42HS0"</span> (15)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">LOCALAPPDATA</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Local"</span> (25)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">"CommonProgramFiles(x86)"</span> => <span class="tracy-dump-string">"C:\Program Files (x86)\Common Files"</span> (35)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">OneDrive</span> => <span class="tracy-dump-string">"C:\Users\TP\OneDrive"</span> (20)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ALLUSERSPROFILE</span> => <span class="tracy-dump-string">"C:\ProgramData"</span> (14)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ProgramFiles</span> => <span class="tracy-dump-string">"C:\Program Files"</span> (16)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">LOGONSERVER</span> => <span class="tracy-dump-string">"\\DESKTOP-9D42HS0"</span> (17)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROJECT_DIR</span> => <span class="tracy-dump-string">"C:/wamp64/www/ecs-fileoutput"</span> (28)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">USERDOMAIN</span> => <span class="tracy-dump-string">"DESKTOP-9D42HS0"</span> (15)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">USERNAME</span> => <span class="tracy-dump-string">"TP"</span> (2)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">FPS_BROWSER_USER_PROFILE_STRING</span> => <span class="tracy-dump-string">"Default"</span> (7)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">CommonProgramFiles</span> => <span class="tracy-dump-string">"C:\Program Files\Common Files"</span> (29)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SystemRoot</span> => <span class="tracy-dump-string">"C:\Windows"</span> (10)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">OS</span> => <span class="tracy-dump-string">"Windows_NT"</span> (10)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">USERPROFILE</span> => <span class="tracy-dump-string">"C:\Users\TP"</span> (11)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">HOMEPATH</span> => <span class="tracy-dump-string">"\Users\TP"</span> (9)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SystemDrive</span> => <span class="tracy-dump-string">"C:"</span> (2)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">"ProgramFiles(x86)"</span> => <span class="tracy-dump-string">"C:\Program Files (x86)"</span> (22)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROCESSOR_IDENTIFIER</span> => <span class="tracy-dump-string">"Intel64 Family 6 Model 60 Stepping 3, GenuineIntel"</span> (50)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">__INTELLIJ_COMMAND_HISTFILE__</span> => <span class="tracy-dump-string">"C:\Users\TP\.PhpStorm2018.3\config\terminal\history\history-3"</span> (61)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROCESSOR_LEVEL</span> => <span class="tracy-dump-string">"6"</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">DriverData</span> => <span class="tracy-dump-string">"C:\Windows\System32\Drivers\DriverData"</span> (38)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PUBLIC</span> => <span class="tracy-dump-string">"C:\Users\Public"</span> (15)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">NUMBER_OF_PROCESSORS</span> => <span class="tracy-dump-string">"4"</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">APPDATA</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Roaming"</span> (27)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">CommonProgramW6432</span> => <span class="tracy-dump-string">"C:\Program Files\Common Files"</span> (29)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">windir</span> => <span class="tracy-dump-string">"C:\Windows"</span> (10)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ProgramW6432</span> => <span class="tracy-dump-string">"C:\Program Files"</span> (16)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">TERMINAL_EMULATOR</span> => <span class="tracy-dump-string">"JetBrains-JediTerm"</span> (18)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">TMP</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Local\Temp"</span> (30)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">OneDriveConsumer</span> => <span class="tracy-dump-string">"C:\Users\TP\OneDrive"</span> (20)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROCESSOR_ARCHITECTURE</span> => <span class="tracy-dump-string">"AMD64"</span> (5)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PATHEXT</span> => <span class="tracy-dump-string">".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL"</span> (58)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">HOMEDRIVE</span> => <span class="tracy-dump-string">"C:"</span> (2)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">FPS_BROWSER_APP_PROFILE_STRING</span> => <span class="tracy-dump-string">"Internet Explorer"</span> (17)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">ProgramData</span> => <span class="tracy-dump-string">"C:\ProgramData"</span> (14)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PROCESSOR_REVISION</span> => <span class="tracy-dump-string">"3c03"</span> (4)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PSModulePath</span> => <span class="tracy-dump-string">"C:\Users\TP\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules"</span> (141)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">Path</span> => <span class="tracy-dump-string">"C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Calibre2\;C:\Program Files (x86)\NoteBook FanControl\;C:\wamp64\bin\php\php7.2.4;C:\ProgramData\ComposerSetup\bin;C:\Program Files\PuTTY\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files (x86)\gnupg\bin;C:\wamp64\Redis\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files\Git\cmd;C:\Program Files (x86)\GitExtensions\;C:\Users\TP\AppData\Local\Microsoft\WindowsApps;C:\Users\TP\AppData\Roaming\Composer\vendor\bin"</span> (655)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PHP_SELF</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SCRIPT_NAME</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SCRIPT_FILENAME</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">PATH_TRANSLATED</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">DOCUMENT_ROOT</span> => <span class="tracy-dump-string">""</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">REQUEST_TIME_FLOAT</span> => <span class="tracy-dump-number">1546825246.252428</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">REQUEST_TIME</span> => <span class="tracy-dump-number">1546825246</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">argv</span> => <span class="tracy-toggle"><span class="tracy-dump-array">array</span> (6)</span>
+<div><span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">0</span> => <span class="tracy-dump-string">"C:\wamp64\www\ecs-fileoutput\vendor\bin\/../symplify/easy-coding-standard/bin/ecs"</span> (81)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">1</span> => <span class="tracy-dump-string">"check"</span> (5)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">2</span> => <span class="tracy-dump-string">"tests"</span> (5)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">3</span> => <span class="tracy-dump-string">"--output-format"</span> (15)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">4</span> => <span class="tracy-dump-string">"file"</span> (4)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">5</span> => <span class="tracy-dump-string">"--ansi"</span> (6)
+</div><span class="tracy-dump-indent">   </span><span class="tracy-dump-key">argc</span> => <span class="tracy-dump-number">6</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">XDEBUG_HANDLER_SETTINGS</span> => <span class="tracy-dump-string">"C:\Users\TP\AppData\Local\Temp\9C69.tmp|0|*|*|C:\wamp64\bin\php\php7.2.4\php.ini|2.6.0"</span> (86)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">SHELL_VERBOSITY</span> => <span class="tracy-dump-number">0</span>
+</div></pre>
+</div></div>
+<div><strong class='debug-variable-name'>PHP Version:</strong>
+<div onclick='debugExpand(this, event);' class='debug-variable' title='Hold CTRL and double-click or triple-click to enlarge/shrink this dump'>
+<pre class="tracy-dump"><span class="tracy-dump-string">"7.2.4"</span> (5)
+</pre>
+</div></div>
+<div><strong class='debug-variable-name'>Current configuration:</strong>
+<div onclick='debugExpand(this, event);' class='debug-variable' title='Hold CTRL and double-click or triple-click to enlarge/shrink this dump'>
+<pre class="tracy-dump"><span class="tracy-toggle"><span class="tracy-dump-array">array</span> (7)</span>
+<div><span class="tracy-dump-indent">   </span><span class="tracy-dump-key">logDir</span> => <span class="tracy-dump-string">"log/"</span> (4)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">adminerDatabaseName</span> => <span class="tracy-dump-null">null</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">adminerUsername</span> => <span class="tracy-dump-null">null</span>
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">adminerUrlLink</span> => <span class="tracy-dump-string">"http://localhost/adminer.php"</span> (28)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">allowedIPAddresses</span> => <span class="tracy-dump-array">array</span> ()
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">editorUri</span> => <span class="tracy-dump-string">"editor://%action/?file=%file&amp;line=%line&amp;search=%search&amp;replace=%replace"</span> (71)
+<span class="tracy-dump-indent">   </span><span class="tracy-dump-key">didYouKnow</span> => <span class="tracy-toggle tracy-collapsed"><span class="tracy-dump-array">array</span> (21)</span>
+<div class="tracy-collapsed"><span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">0</span> => <span class="tracy-dump-string">"You can use &lt;b&gt;dumpOnTrue&lt;/b&gt; method to print variables only when first parameter is true."</span> (90)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">1</span> => <span class="tracy-dump-string">"Dbgr respects &lt;a href=&#039;https://secure.php.net/manual/en/language.oop5.magic.php#object.debuginfo&#039;&gt;__debugInfo&lt;/a&gt; magic method. You can use it to adjust what data object prints out."</span> (181)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">2</span> => <span class="tracy-dump-string">"You can use method &lt;b&gt;condition&lt;/b&gt; to set wheter condition is true or false and then use dumpConditional only when condition is true."</span> (134)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">3</span> => <span class="tracy-dump-string">"You can set your own config file by creating dbgr.json in root folder or using &lt;b&gt;loadConfig&lt;/b&gt; method dynamicaly"</span> (114)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">4</span> => <span class="tracy-dump-string">"Dbgr can open files on line where Dbgr was called, backtrace locations and even class declarations with single click. To set it up, follow guide at https://tracy.nette.org/en/open-files-in-ide"</span> (192)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">5</span> => <span class="tracy-dump-string">"Colored lines at the left side are based on backtraces. Same dump, reached through different stack traces will have different colors to quickly tell them apart"</span> (159)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">6</span> => <span class="tracy-dump-string">"You name your dumped data using &lt;b&gt;setName&lt;/b&gt; method"</span> (53)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">7</span> => <span class="tracy-dump-string">"Dbgr will output time passed since the last time Dbgr was called."</span> (65)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">8</span> => <span class="tracy-dump-string">"You can save dump into file by calling &lt;b&gt;setFile&lt;/b&gt; before calling method dump. Multiple calls with the same filename will be appended into single file."</span> (154)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">9</span> => <span class="tracy-dump-string">"Dbgr will output data only on localhost. You can whitelist ip addresses that can view dumped data (set allowedIPAddresses in your config) or call &lt;b&gt;forceDevelopmentMode&lt;/b&gt; method"</span> (180)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">10</span> => <span class="tracy-dump-string">"&lt;b&gt;Dbgr::echo&lt;/b&gt; provides improved echo function with immediate output, timestamping"</span> (85)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">11</span> => <span class="tracy-dump-string">"If you&#039;re working with large arrays, you can use &lt;b&gt;setDepth&lt;/b&gt; method to increase depth of printed subarrays"</span> (110)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">12</span> => <span class="tracy-dump-string">"If you&#039;re dumping sql queries, Dbgr will highlight their syntax and can provide link into adminer - no need to copy them. Use adminerDatabaseName and adminerUrlLink configurations to set it up."</span> (193)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">13</span> => <span class="tracy-dump-string">"Dbgr respects environmet in which it was run, wheter it is HTML page, AJAX request or CLI application. You can force output to be in HTML format using &lt;b&gt;forceHTML&lt;/b&gt;"</span> (167)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">14</span> => <span class="tracy-dump-string">"If you&#039;re annoyed by hidden and forgotten exits and dies, you can use &lt;b&gt;dieNow&lt;/b&gt; method to end script with proper and verbose message"</span> (136)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">15</span> => <span class="tracy-dump-string">"You can use &lt;b&gt;dieAfter&lt;/b&gt; method if you want to end script execution prematurely but not immediatly. No need to iterate over 20 000 items if 20 is enough."</span> (156)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">16</span> => <span class="tracy-dump-string">"If you have too many dumps in your output, you can differentiate them by colors using &lt;b&gt;setColor&lt;/b&gt; method"</span> (108)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">17</span> => <span class="tracy-dump-string">"If you&#039;re working with imports or other large sets of data, you can use methods &lt;b&gt;setCounter&lt;/b&gt; and &lt;b&gt;incrementCounter&lt;/b&gt; to quickly view progress. It will print only every Xth iteration."</span> (191)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">18</span> => <span class="tracy-dump-string">"Hold ctrl and click on class name - it will bring you to its declaration."</span> (73)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">19</span> => <span class="tracy-dump-string">"Hold ctrl and double click on top line with filename - it will open full call stack and additional info."</span> (104)
+<span class="tracy-dump-indent">   |  </span><span class="tracy-dump-key">20</span> => <span class="tracy-dump-string">"Hold ctrl and double click on outputed data - it will enlarge output."</span> (69)
+</div></div></pre>
+</div></div>
+</div>
+<div><strong class='debug-variable-name'>$diff:</strong>
+<div onclick='debugExpand(this, event);' class='debug-variable' title='Hold CTRL and double-click or triple-click to enlarge/shrink this dump'>
+<div class='debug-sql'>
+<span class='dump'><comment>    ---------- begin diff ----------</comment>
+<span class='deletion'>--- Original</span>
+<span class='addition'>+++ New</span>
+<span class='gitinfo'>@@ -1,29 +1,31 @@</span>
+<span class='deletion'>-\<?php</span>
+<span class='deletion'>-<em style="color:gray">/**</span>
+<span class='deletion'>- * Created by PhpStorm.</span>
+<span class='deletion'>- * User: TP</span>
+<span class='deletion'>- * Date: 01.11.2018</span>
+<span class='deletion'>- * Time: 23:07</span>
+<span class='deletion'>- */</em></span>
+<span class='deletion'>-namespace noximo;</span>
+<span class='deletion'>-</span>
+<span class='deletion'>-class MessedUpClass</span>
+<span class='deletion'>-{</span>
+<span class='deletion'>-    private $ssomething;</span>
+<span class='deletion'>-</span>
+<span class='deletion'>-    const SOMETHING = 1 + 1;</span>
+<span class='deletion'>-</span>
+<span class='deletion'>-    public function __construct()</span>
+<span class='deletion'>-    {</span>
+<span class='deletion'>-    }</span>
+<span class='deletion'>-</span>
+<span class='deletion'>-    <em style="color:gray">/**</span>
+<span class='deletion'>-     * @param string $problem</span>
+<span class='deletion'>-     *</span>
+<span class='deletion'>-     * @return int</span>
+<span class='deletion'>-     */</em></span>
+<span class='deletion'>-    function doSOmething(<strong style="color:green">INT</strong> $problem): string</span>
+<span class='deletion'>-    {</span>
+<span class='deletion'>-        return $problem;</span>
+<span class='deletion'>-    }</span>
+<span class='deletion'>-}</span>
+<span class='addition'>+\<?php declare(strict_types=1);</span>
+<span class='addition'>+</span>
+<span class='addition'>+<em style="color:gray">/**</span>
+<span class='addition'>+ * Created by PhpStorm.</span>
+<span class='addition'>+ * User: TP</span>
+<span class='addition'>+ * Date: 01.11.2018</span>
+<span class='addition'>+ * Time: 23:07</span>
+<span class='addition'>+ */</em></span>
+<span class='addition'>+</span>
+<span class='addition'>+namespace noximo;</span>
+<span class='addition'>+</span>
+<span class='addition'>+class MessedUpClass</span>
+<span class='addition'>+{</span>
+<span class='addition'>+    public const SOMETHING = 1 + 1;</span>
+<span class='addition'>+</span>
+<span class='addition'>+    private $ssomething;</span>
+<span class='addition'>+</span>
+<span class='addition'>+    public function __construct()</span>
+<span class='addition'>+    {</span>
+<span class='addition'>+    }</span>
+<span class='addition'>+</span>
+<span class='addition'>+    <em style="color:gray">/**</span>
+<span class='addition'>+     * @param string $problem</span>
+<span class='addition'>+     *</span>
+<span class='addition'>+     * @return int</span>
+<span class='addition'>+     */</em></span>
+<span class='addition'>+    public function doSOmething(<strong style="color:green">INT</strong> $problem): string</span>
+<span class='addition'>+    {</span>
+<span class='addition'>+        return $problem;</span>
+<span class='addition'>+    }</span>
+<span class='addition'>+}</span>
+<comment>    ----------- end diff -----------</comment></span>
+
+</div>
+</div></div>
+<div class='debug-didYouKnow'><b>Did you know?</b> If you're dumping sql queries, Dbgr will highlight their syntax and can provide link into adminer - no need to copy them. Use adminerDatabaseName and adminerUrlLink configurations to set it up.</b></div>
+</div>
+</body></html>

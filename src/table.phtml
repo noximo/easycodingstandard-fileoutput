@@ -1,0 +1,171 @@
+<?php
+declare(strict_types=1);
+
+namespace noximo\EasyCodingStandardFileoutput;
+?>
+<html lang="">
+<head>
+    <style>
+        body {
+            background-color: #34495e;
+            color: white;
+            font-family: monospace;
+            font-size: 16px;
+        }
+
+        b {
+            color: lightskyblue;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin: 5px;
+        }
+
+        .time {
+            font-style: italic;
+            color: white;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        a {
+            color: yellow;
+        }
+
+        table {
+            width: 100%;
+            font-size: 12px;
+        }
+
+        th {
+            text-align: left;
+            padding: 25px 0 10px 0;
+        }
+
+        td {
+            padding: 5px;
+        }
+
+        .section {
+            font-size: 1.4em;
+        }
+
+        .line {
+            text-align: right;
+            vertical-align: middle;
+        }
+
+        .error:nth-child(odd) {
+            background: #374d63
+        }
+
+        #thanks {
+            margin-top: 50px;
+            font-size: 0.65em;
+            text-align: center;
+        }
+
+        .deletion {
+            color: red;
+        }
+
+        .addition {
+            color: lightgreen;
+        }
+
+        .gitinfo {
+            color: cyan;
+        }
+
+        .nonimportant {
+            color: lightgrey;
+            font-size: small;
+        }
+    </style>
+    <title>PHPStan analysis result</title>
+</head>
+<h1>PHPStan analysis result</h1>
+<div class="time"><?= date('Y-m-d H:i:s') ?>
+    <div class="nonimportant">File may be outdated, don't forget to run ecs again</div>
+</div>
+
+
+<div>
+    <table>
+        <?php if (count($data[FileOutputFormatter::FILES]) > 0): ?>
+            <thead>
+            <tr>
+                <th colspan="3" class="section">Files with errors: <?= count($data[FileOutputFormatter::FILES]) ?></th>
+            </tr>
+            </thead>
+            <?php foreach ($data[FileOutputFormatter::FILES] as $filename => $errors): ?>
+                <thead>
+                <tr>
+                    <th colspan="3"><?= $filename . ' (' . count($errors) . "\xC3\x97)" ?></th>
+                </tr>
+                </thead>
+                <?php foreach ($errors as $error): ?>
+                    <tr class="error">
+                        <td class="line">
+                            <a href='<?= $error[FileOutputFormatter::LINK] ?>'><?= $error[FileOutputFormatter::LINE] ?></a>
+                        </td>
+                        <td>
+                            <?= $error[FileOutputFormatter::ERROR] ?>
+                            <small class="nonimportant">(<?= $error[FileOutputFormatter::SOURCE_CLASS] ?>)</small>
+                        </td>
+                    </tr>
+                <?php endforeach ?>
+            <?php endforeach ?>
+        <?php endif ?>
+
+        <?php if (count($data[FileOutputFormatter::DIFFS]) > 0): ?>
+            <thead>
+            <tr>
+                <th colspan="3" class="section">
+                    Files that can be fixed automatically: <?= count($data[FileOutputFormatter::DIFFS]) ?>
+                    <strong><i>Use parameter --fix</i></strong>
+                </th>
+            </tr>
+            </thead>
+
+            <?php foreach ($data[FileOutputFormatter::DIFFS] as $filename => $file): ?>
+                <tr>
+                    <td colspan="3">
+                        <a href='<?= $file[FileOutputFormatter::LINK] ?>'><?= $file[FileOutputFormatter::FILE] ?></a>
+                    </td>
+                </tr>
+                <?php foreach ($file[FileOutputFormatter::DIFFS] as $diff): ?>
+                    <tr>
+                        <td></td>
+                        <td colspan="2">
+                            <pre><?= $diff[FileOutputFormatter::DIFF] ?></pre>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td colspan="2">
+                            <strong>Applied checkers:</strong>
+                        </td>
+                    </tr>
+                    <?php foreach ($diff[FileOutputFormatter::SOURCE_CLASS] as $source): ?>
+                        <tr>
+                            <td></td>
+                            <td colspan="2">
+                                <?= $source[FileOutputFormatter::SOURCE_CLASS] ?>
+                            </td>
+                        </tr>
+                    <?php endforeach ?>
+                <?php endforeach ?>
+            <?php endforeach ?>
+        <?php endif ?>
+
+    </table>
+    <div id="thanks">
+        This file was made thanks to
+        <a href="https://github.com/phpstan/phpstan">Easy Coding Standard</a> and was outputted by
+        <a href="https://github.com/noximo/EasyCodingStandard-FileOutput">ECS FileOutput</a>
+    </div>
+</div>
+</html>

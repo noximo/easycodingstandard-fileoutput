@@ -1,0 +1,45 @@
+{
+  "name": "noximo/ecs-fileoutput",
+  "description": "An error formatter for Easy Coding Standard that exports analysis result into HTML file",
+  "keywords": [
+    "Easy Coding Standard",
+    "Error formatter",
+    "File output"
+  ],
+  "type": "library",
+  "authors": [
+    {
+      "name": "Tomas Pospisil",
+      "email": "pospisilt@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "noximo\\EasyCodingStandardFileoutput\\": [
+        "src/",
+        "tests/"
+      ]
+    }
+  },
+  "require": {
+    "php": "^7.1",
+    "symplify/easy-coding-standard": "^5.3",
+    "nette/utils": "2.5.*"
+  },
+  "license": "MIT",
+  "require-dev": {
+    "phpstan/phpstan": "^0.10",
+    "noximo/dbgr": "dev-master"
+  },
+  "scripts": {
+    "check": [
+      "@check-cs",
+      "@phpstan"
+    ],
+    "check-cs": "ecs check src",
+    "fix-cs": "ecs check src --fix",
+    "phpstan": "phpstan analyse src --level max --error-format=fileoutput",
+    "phpstan-test": "phpstan analyse src tests --level max --error-format=fileoutput --no-progress",
+    "check-cs-test": "ecs check tests "
+  }
+}
