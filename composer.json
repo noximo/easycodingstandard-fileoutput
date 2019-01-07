@@ -1,5 +1,5 @@
 {
-  "name": "noximo/ecs-fileoutput",
+  "name": "noximo/easycodingstandard-fileoutput",
   "description": "An error formatter for Easy Coding Standard that exports analysis result into HTML file",
   "keywords": [
     "Easy Coding Standard",
