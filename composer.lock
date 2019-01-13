@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6169ce2f721267ab329c8cc5cc0c04ce",
+    "content-hash": "7810bc2cd60d3603ffdd82f3cd19b70a",
     "packages": [
         {
             "name": "composer/semver",
@@ -973,26 +973,26 @@
         },
         {
             "name": "slam/php-cs-fixer-extensions",
-            "version": "v1.17.0",
+            "version": "v1.18.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Slamdunk/php-cs-fixer-extensions.git",
-                "reference": "f2d819ff70cc098f68cd2eefd3279c2f54e0ccad"
+                "reference": "da18f089d1c559915d3c25d5e8783c7b7d272d1d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Slamdunk/php-cs-fixer-extensions/zipball/f2d819ff70cc098f68cd2eefd3279c2f54e0ccad",
-                "reference": "f2d819ff70cc098f68cd2eefd3279c2f54e0ccad",
+                "url": "https://api.github.com/repos/Slamdunk/php-cs-fixer-extensions/zipball/da18f089d1c559915d3c25d5e8783c7b7d272d1d",
+                "reference": "da18f089d1c559915d3c25d5e8783c7b7d272d1d",
                 "shasum": ""
             },
             "require": {
-                "friendsofphp/php-cs-fixer": "^2.13",
+                "friendsofphp/php-cs-fixer": "^2.14",
                 "php": "^7.1"
             },
             "require-dev": {
                 "phpstan/phpstan": "^0.10",
                 "phpstan/phpstan-phpunit": "^0.10",
-                "phpunit/phpunit": "^7.3",
+                "phpunit/phpunit": "^7.5",
                 "roave/security-advisories": "dev-master",
                 "slam/php-debug-r": "^1.4",
                 "slam/phpstan-extensions": "^2.0",
@@ -1016,7 +1016,7 @@
                 }
             ],
             "description": "Slam extension of friendsofphp/php-cs-fixer",
-            "time": "2018-08-30T15:03:51+00:00"
+            "time": "2019-01-07T15:02:12+00:00"
         },
         {
             "name": "slevomat/coding-standard",
@@ -2325,24 +2325,24 @@
         },
         {
             "name": "symplify/better-phpdoc-parser",
-            "version": "v5.3.1",
+            "version": "v5.3.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Symplify/BetterPhpDocParser.git",
-                "reference": "842296f650f9c7aa2fc35fe6d0f63bdb9830eb29"
+                "reference": "44e22141bfc18f025b5abf4a97820cbb1fdfe999"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Symplify/BetterPhpDocParser/zipball/842296f650f9c7aa2fc35fe6d0f63bdb9830eb29",
-                "reference": "842296f650f9c7aa2fc35fe6d0f63bdb9830eb29",
+                "url": "https://api.github.com/repos/Symplify/BetterPhpDocParser/zipball/44e22141bfc18f025b5abf4a97820cbb1fdfe999",
+                "reference": "44e22141bfc18f025b5abf4a97820cbb1fdfe999",
                 "shasum": ""
             },
             "require": {
                 "nette/utils": "^2.5",
                 "php": "^7.1",
                 "phpstan/phpdoc-parser": "^0.3",
-                "symplify/package-builder": "^5.3.1",
-                "thecodingmachine/safe": "^0.1.9"
+                "symplify/package-builder": "^5.3.12",
+                "thecodingmachine/safe": "^0.1.11"
             },
             "require-dev": {
                 "phpunit/phpunit": "^7.5"
@@ -2363,20 +2363,20 @@
                 "MIT"
             ],
             "description": "Slim wrapper around phpstan/phpdoc-parser with format preserving printer",
-            "time": "2019-01-05T15:02:46+00:00"
+            "time": "2019-01-13T01:35:05+00:00"
         },
         {
             "name": "symplify/coding-standard",
-            "version": "v5.3.1",
+            "version": "v5.3.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Symplify/CodingStandard.git",
-                "reference": "187f1d4f3f1812671b07cbf073a4895b50096a42"
+                "reference": "2ea489b69ae9bff26cfc4ea43e4b5c4a66f553c4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Symplify/CodingStandard/zipball/187f1d4f3f1812671b07cbf073a4895b50096a42",
-                "reference": "187f1d4f3f1812671b07cbf073a4895b50096a42",
+                "url": "https://api.github.com/repos/Symplify/CodingStandard/zipball/2ea489b69ae9bff26cfc4ea43e4b5c4a66f553c4",
+                "reference": "2ea489b69ae9bff26cfc4ea43e4b5c4a66f553c4",
                 "shasum": ""
             },
             "require": {
@@ -2386,14 +2386,14 @@
                 "php": "^7.1",
                 "slam/php-cs-fixer-extensions": "^1.17",
                 "squizlabs/php_codesniffer": "^3.4",
-                "symplify/token-runner": "^5.3.1",
-                "thecodingmachine/safe": "^0.1.9"
+                "symplify/token-runner": "^5.3.12",
+                "thecodingmachine/safe": "^0.1.11"
             },
             "require-dev": {
                 "nette/application": "^2.4",
                 "phpunit/phpunit": "^7.5",
-                "symplify/easy-coding-standard-tester": "^5.3.1",
-                "symplify/package-builder": "^5.3.1"
+                "symplify/easy-coding-standard-tester": "^5.3.12",
+                "symplify/package-builder": "^5.3.12"
             },
             "type": "library",
             "extra": {
@@ -2411,20 +2411,20 @@
                 "MIT"
             ],
             "description": "Set of Symplify rules for PHP_CodeSniffer and PHP CS Fixer.",
-            "time": "2019-01-05T15:02:46+00:00"
+            "time": "2019-01-13T01:35:05+00:00"
         },
         {
             "name": "symplify/easy-coding-standard",
-            "version": "v5.3.1",
+            "version": "v5.3.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Symplify/EasyCodingStandard.git",
-                "reference": "9f254df373091e79a6872b0d5e38b0c6b056c77a"
+                "reference": "c1f6a96716feef0c58c905c63911fbbb6c0b6234"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Symplify/EasyCodingStandard/zipball/9f254df373091e79a6872b0d5e38b0c6b056c77a",
-                "reference": "9f254df373091e79a6872b0d5e38b0c6b056c77a",
+                "url": "https://api.github.com/repos/Symplify/EasyCodingStandard/zipball/c1f6a96716feef0c58c905c63911fbbb6c0b6234",
+                "reference": "c1f6a96716feef0c58c905c63911fbbb6c0b6234",
                 "shasum": ""
             },
             "require": {
@@ -2444,14 +2444,14 @@
                 "symfony/finder": "^3.4|^4.1",
                 "symfony/http-kernel": "^3.4|^4.1",
                 "symfony/yaml": "^3.4|^4.1",
-                "symplify/coding-standard": "^5.3.1",
-                "symplify/package-builder": "^5.3.1",
-                "symplify/token-runner": "^5.3.1",
-                "thecodingmachine/safe": "^0.1.9"
+                "symplify/coding-standard": "^5.3.12",
+                "symplify/package-builder": "^5.3.12",
+                "symplify/token-runner": "^5.3.12",
+                "thecodingmachine/safe": "^0.1.11"
             },
             "require-dev": {
                 "phpunit/phpunit": "^7.5",
-                "symplify/easy-coding-standard-tester": "^5.3.1"
+                "symplify/easy-coding-standard-tester": "^5.3.12"
             },
             "bin": [
                 "bin/ecs"
@@ -2476,20 +2476,20 @@
                 "MIT"
             ],
             "description": "Use Coding Standard with 0-knowledge of PHP-CS-Fixer and PHP_CodeSniffer.",
-            "time": "2019-01-05T15:02:46+00:00"
+            "time": "2019-01-13T01:35:05+00:00"
         },
         {
             "name": "symplify/package-builder",
-            "version": "v5.3.1",
+            "version": "v5.3.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Symplify/PackageBuilder.git",
-                "reference": "b869b5dbf1ed3c80bb0dda7db6264928accff331"
+                "reference": "573e4d0d0be5d7fd3e3a5f0b72b47ce7ea81ede9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Symplify/PackageBuilder/zipball/b869b5dbf1ed3c80bb0dda7db6264928accff331",
-                "reference": "b869b5dbf1ed3c80bb0dda7db6264928accff331",
+                "url": "https://api.github.com/repos/Symplify/PackageBuilder/zipball/573e4d0d0be5d7fd3e3a5f0b72b47ce7ea81ede9",
+                "reference": "573e4d0d0be5d7fd3e3a5f0b72b47ce7ea81ede9",
                 "shasum": ""
             },
             "require": {
@@ -2503,7 +2503,7 @@
                 "symfony/finder": "^3.4|^4.1",
                 "symfony/http-kernel": "^3.4|^4.1",
                 "symfony/yaml": "^3.4|^4.1",
-                "thecodingmachine/safe": "^0.1.9"
+                "thecodingmachine/safe": "^0.1.11"
             },
             "require-dev": {
                 "phpunit/phpunit": "^7.5"
@@ -2524,20 +2524,20 @@
                 "MIT"
             ],
             "description": "Dependency Injection, Console and Kernel toolkit for Symplify packages.",
-            "time": "2019-01-05T11:27:01+00:00"
+            "time": "2019-01-11T10:33:05+00:00"
         },
         {
             "name": "symplify/token-runner",
-            "version": "v5.3.1",
+            "version": "v5.3.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Symplify/TokenRunner.git",
-                "reference": "2912aabfdb47e59303222a95c67af7e60425dc43"
+                "reference": "f8ea17d9ee40ef92f6cc4c4fe4de840d169a0fa8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Symplify/TokenRunner/zipball/2912aabfdb47e59303222a95c67af7e60425dc43",
-                "reference": "2912aabfdb47e59303222a95c67af7e60425dc43",
+                "url": "https://api.github.com/repos/Symplify/TokenRunner/zipball/f8ea17d9ee40ef92f6cc4c4fe4de840d169a0fa8",
+                "reference": "f8ea17d9ee40ef92f6cc4c4fe4de840d169a0fa8",
                 "shasum": ""
             },
             "require": {
@@ -2546,9 +2546,9 @@
                 "nette/utils": "^2.5",
                 "php": "^7.1",
                 "squizlabs/php_codesniffer": "^3.4",
-                "symplify/better-phpdoc-parser": "^5.3.1",
-                "symplify/package-builder": "^5.3.1",
-                "thecodingmachine/safe": "^0.1.9"
+                "symplify/better-phpdoc-parser": "^5.3.12",
+                "symplify/package-builder": "^5.3.12",
+                "thecodingmachine/safe": "^0.1.11"
             },
             "require-dev": {
                 "phpunit/phpunit": "^7.5"
@@ -2569,20 +2569,20 @@
                 "MIT"
             ],
             "description": "Set of utils for PHP_CodeSniffer and PHP CS Fixer.",
-            "time": "2019-01-05T15:02:46+00:00"
+            "time": "2019-01-13T01:35:05+00:00"
         },
         {
             "name": "thecodingmachine/safe",
-            "version": "v0.1.9",
+            "version": "v0.1.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thecodingmachine/safe.git",
-                "reference": "ea277656a579cd36d652f7742a61df7c1a2e3e9c"
+                "reference": "5687cf3c45ac76014cf0d3423846b219aee1429c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thecodingmachine/safe/zipball/ea277656a579cd36d652f7742a61df7c1a2e3e9c",
-                "reference": "ea277656a579cd36d652f7742a61df7c1a2e3e9c",
+                "url": "https://api.github.com/repos/thecodingmachine/safe/zipball/5687cf3c45ac76014cf0d3423846b219aee1429c",
+                "reference": "5687cf3c45ac76014cf0d3423846b219aee1429c",
                 "shasum": ""
             },
             "require": {
@@ -2701,7 +2701,104 @@
                 "MIT"
             ],
             "description": "PHP core functions that throw exceptions instead of returning FALSE on error",
-            "time": "2019-01-04T17:18:34+00:00"
+            "time": "2019-01-11T09:03:26+00:00"
+        },
+        {
+            "name": "webmozart/assert",
+            "version": "1.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/webmozart/assert.git",
+                "reference": "83e253c8e0be5b0257b881e1827274667c5c17a9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/webmozart/assert/zipball/83e253c8e0be5b0257b881e1827274667c5c17a9",
+                "reference": "83e253c8e0be5b0257b881e1827274667c5c17a9",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^5.3.3 || ^7.0",
+                "symfony/polyfill-ctype": "^1.8"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^4.6",
+                "sebastian/version": "^1.0.1"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.3-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Webmozart\\Assert\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bernhard Schussek",
+                    "email": "bschussek@gmail.com"
+                }
+            ],
+            "description": "Assertions to validate method input/output with nice error messages.",
+            "keywords": [
+                "assert",
+                "check",
+                "validate"
+            ],
+            "time": "2018-12-25T11:19:39+00:00"
+        },
+        {
+            "name": "webmozart/path-util",
+            "version": "2.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/webmozart/path-util.git",
+                "reference": "d939f7edc24c9a1bb9c0dee5cb05d8e859490725"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/webmozart/path-util/zipball/d939f7edc24c9a1bb9c0dee5cb05d8e859490725",
+                "reference": "d939f7edc24c9a1bb9c0dee5cb05d8e859490725",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.3",
+                "webmozart/assert": "~1.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^4.6",
+                "sebastian/version": "^1.0.1"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "2.3-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Webmozart\\PathUtil\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bernhard Schussek",
+                    "email": "bschussek@gmail.com"
+                }
+            ],
+            "description": "A robust cross-platform utility for normalizing, comparing and modifying file paths.",
+            "time": "2015-12-17T08:42:14+00:00"
         }
     ],
     "packages-dev": [
@@ -2975,16 +3072,16 @@
         },
         {
             "name": "nikic/php-parser",
-            "version": "v4.1.1",
+            "version": "v4.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nikic/PHP-Parser.git",
-                "reference": "8aae5b59b83bb4d0dbf07b0a835f2680a658f610"
+                "reference": "594bcae1fc0bccd3993d2f0d61a018e26ac2865a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/8aae5b59b83bb4d0dbf07b0a835f2680a658f610",
-                "reference": "8aae5b59b83bb4d0dbf07b0a835f2680a658f610",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/594bcae1fc0bccd3993d2f0d61a018e26ac2865a",
+                "reference": "594bcae1fc0bccd3993d2f0d61a018e26ac2865a",
                 "shasum": ""
             },
             "require": {
@@ -3000,7 +3097,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "4.1-dev"
+                    "dev-master": "4.2-dev"
                 }
             },
             "autoload": {
@@ -3022,7 +3119,7 @@
                 "parser",
                 "php"
             ],
-            "time": "2018-12-26T11:32:39+00:00"
+            "time": "2019-01-12T16:31:37+00:00"
         },
         {
             "name": "noximo/dbgr",
@@ -3074,16 +3171,16 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "0.10.7",
+            "version": "0.10.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpstan.git",
-                "reference": "b7a70043d9a933c9d1575df49a7b141dbc3c469f"
+                "reference": "4f828460a0276180da76c670a0a6e592e7c38b71"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/b7a70043d9a933c9d1575df49a7b141dbc3c469f",
-                "reference": "b7a70043d9a933c9d1575df49a7b141dbc3c469f",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/4f828460a0276180da76c670a0a6e592e7c38b71",
+                "reference": "4f828460a0276180da76c670a0a6e592e7c38b71",
                 "shasum": ""
             },
             "require": {
@@ -3143,7 +3240,7 @@
                 "MIT"
             ],
             "description": "PHPStan - PHP Static Analysis Tool",
-            "time": "2018-12-28T13:47:37+00:00"
+            "time": "2019-01-08T09:51:19+00:00"
         },
         {
             "name": "tracy/tracy",

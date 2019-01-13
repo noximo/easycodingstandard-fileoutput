@@ -11,6 +11,7 @@ use Symplify\EasyCodingStandard\Error\Error;
 use Symplify\EasyCodingStandard\Error\ErrorAndDiffCollector;
 use Symplify\EasyCodingStandard\Error\FileDiff;
 use Symplify\PackageBuilder\Console\ShellCode;
+use Webmozart\PathUtil\Path;
 
 class FileOutputFormatter implements OutputFormatterInterface
 {
@@ -33,7 +34,8 @@ class FileOutputFormatter implements OutputFormatterInterface
     public const SOURCE_CLASS = 'sourceClass';
 
     public const SOURCE_CLASS_LINK = 'sourceClassLink';
-    const DIFF = 'diff';
+
+    public const DIFF = 'diff';
 
     /** @var string */
     private $link = 'editor://open/?file=%file&line=%line';
@@ -59,9 +61,6 @@ class FileOutputFormatter implements OutputFormatterInterface
     /** @var string */
     private $cwd;
 
-    /** @var string[] */
-    private $classLinks;
-
     /**
      * FileOutput constructor.
      *
@@ -72,7 +71,7 @@ class FileOutputFormatter implements OutputFormatterInterface
      */
     public function __construct(string $outputFile, ErrorAndDiffCollector $errorAndDiffCollector, ?OutputFormatterInterface $defaultFormatter = null, ?string $customTemplate = null)
     {
-        $this->cwd = \Safe\getcwd();
+        $this->cwd = \Safe\getcwd() . DIRECTORY_SEPARATOR;
         $this->defaultFormatter = $defaultFormatter;
 
         try {
@@ -80,7 +79,7 @@ class FileOutputFormatter implements OutputFormatterInterface
         } catch (RegexpException $e) {
         }
 
-        $this->outputFile = realpath($this->cwd . str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $outputFile));
+        $this->outputFile = Path::canonicalize($this->cwd . $outputFile);
         $customTemplateFile = $customTemplate !== null ? realpath($customTemplate) : false;
         if ($customTemplateFile !== false) {
             $this->template = $customTemplateFile;
@@ -204,7 +203,6 @@ class FileOutputFormatter implements OutputFormatterInterface
                 $diff[self::SOURCE_CLASS] = array_map(function ($checker) {
                     return [
                         self::SOURCE_CLASS => $checker,
-
                     ];
                 }, $fileDiff->getAppliedCheckers());
 
@@ -231,16 +229,12 @@ class FileOutputFormatter implements OutputFormatterInterface
         $diff = Strings::replace($diff, '/<\/fg=red>/', '</span>');
 
         $diff = Strings::replace($diff, '/<fg=green>/', "<span class='addition'>");
-        $diff = Strings::replace($diff, '/<\/fg=green>/', '</span>');
-
-        \noximo\Dbgr::setFile('x')->dump($diff);
-
-        return $diff;
+        return Strings::replace($diff, '/<\/fg=green>/', '</span>');
     }
 
     private function normalizeFilename(string $filename): string
     {
-        return realpath($this->cwd . DIRECTORY_SEPARATOR . $filename);
+        return Path::canonicalize($this->cwd . $filename);
     }
 
     private function prepareLink(string $filename, int $line): string
