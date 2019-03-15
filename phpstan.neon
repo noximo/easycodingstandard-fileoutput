@@ -1,3 +1,3 @@
 services:
 	errorFormatter.fileoutput:
-		class: noximo\FileOutput(./example/phpstan.html, null)
+		class: noximo\FileOutput(./example/phpstan.html,  @errorFormatter.table)

@@ -181,7 +181,7 @@ class FileOutputFormatter implements OutputFormatterInterface
     /**
      * @param FileDiff[][] $fileDiffPerFile
      *
-     * @return string[]
+     * @return mixed[]
      * @throws \Safe\Exceptions\ArrayException
      * @throws RegexpException
      */
