@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "429352c337b7ff4fc32feb185e74e2c2",
+    "content-hash": "20bb2c134d6653e16a5b5fdc1fac5ed5",
     "packages": [
         {
             "name": "composer/semver",
@@ -3383,23 +3383,23 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/noximo/dbgr.git",
-                "reference": "6f6e4d93c0baa188341d9ff4067e0ea6c02904f9"
+                "reference": "3f3f726b9816b15af5df7490c00a343386957093"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/noximo/dbgr/zipball/6f6e4d93c0baa188341d9ff4067e0ea6c02904f9",
-                "reference": "6f6e4d93c0baa188341d9ff4067e0ea6c02904f9",
+                "url": "https://api.github.com/repos/noximo/dbgr/zipball/3f3f726b9816b15af5df7490c00a343386957093",
+                "reference": "3f3f726b9816b15af5df7490c00a343386957093",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "nette/utils": "^2.5",
+                "nette/utils": "^2.5.3",
                 "php": ">= 7.2",
-                "tracy/tracy": "^2.5"
+                "tracy/tracy": "^2.6"
             },
             "require-dev": {
-                "phpstan/phpstan": "^0.10.5",
-                "symplify/easy-coding-standard": "^5.1"
+                "phpstan/phpstan": "^0.11",
+                "symplify/easy-coding-standard": "^5.4"
             },
             "type": "library",
             "autoload": {
@@ -3423,7 +3423,7 @@
                 "dump",
                 "var_dump"
             ],
-            "time": "2019-01-17T17:14:57+00:00"
+            "time": "2019-03-15T21:41:53+00:00"
         },
         {
             "name": "noximo/phpstan-fileoutput",
