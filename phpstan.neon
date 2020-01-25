@@ -1,0 +1,3 @@
+services:
+	errorFormatter.fileoutput:
+		factory: noximo\FileOutput(./log/phpstan.html, null)
